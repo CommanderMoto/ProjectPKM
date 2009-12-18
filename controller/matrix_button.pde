@@ -1,5 +1,6 @@
 class MatrixButton {
-  int panel, row, column, state;
+  int panel, row, column;
+  float state;
   OscP5 theOSC;
   MatrixButton(int _panel, int _row, int _column, OscP5 _osc) {
     panel = _panel;
@@ -15,11 +16,11 @@ class MatrixButton {
   }*/
   
   public void setState(float theA) {
-    println("Hey, "+panel+"/"+row+"/"+column+" new state = "+theA);
-    state = (int) theA;
+    //println("Hey, "+panel+"/"+row+"/"+column+" new state = "+theA);
+    state = theA;
   }
   
-  int getState() {
+  float getState() {
     return state;
   }
   
@@ -37,6 +38,14 @@ class MatrixButton {
   
   String touchOSCAddress() {
     return  "/"+(panel + 1)+"/multitoggle1/"+(panelHeight - row)+"/"+(column + 1);
+  }
+  
+  void addToBundle(OscBundle theBundle, OscMessage theMessage)
+  {
+    theMessage.clear();
+    theMessage.setAddrPattern(this.touchOSCAddress());
+    theMessage.add(this.getState());
+    theBundle.add(theMessage);
   }
   
   String to_s()
