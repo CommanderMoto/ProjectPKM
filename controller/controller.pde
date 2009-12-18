@@ -1,6 +1,8 @@
 import oscP5.*;
 import netP5.*;
+import themidibus.*;
 
+MidiBus myBus;
 OscP5 oscP5;
 NetAddressList myNetAddressList = new NetAddressList();
 /* listeningPort is the port the server is listening for incoming messages */
@@ -14,18 +16,20 @@ int panelHeight = 10;
 int currentRow = 0;
 float bpm = 90.0;
 MatrixButton [][][] buttonGrid;
+int[] toneMap = {60,62,64,67,69,72,74,76,79,81};
 
 String myConnectPattern = "/server/connect";
 String myDisconnectPattern = "/server/disconnect";
 
 void setup() {
+  myBus = new MidiBus(this, 0, 0);
   oscP5 = new OscP5(this, myListeningPort);
-  frameRate(bpm / 60.0);
+  frameRate(bpm / 15.0);
   buttonGrid = new MatrixButton[numPanels][panelWidth][panelHeight];
   for (int panelNumber = 0; panelNumber < numPanels; panelNumber++) {
     for(int row = 0; row < panelHeight; row++){
       for (int column = 0; column < panelWidth; column++) {
-        MatrixButton foo = new MatrixButton(panelNumber, row, column, oscP5);
+        MatrixButton foo = new MatrixButton(panelNumber, row, column, toneMap[row], oscP5, myNetAddressList);
         buttonGrid[panelNumber][column][row] = foo;
         oscP5.plug(foo, "setState", foo.touchOSCAddress());
       }
@@ -34,6 +38,9 @@ void setup() {
   oscP5.plug(this, "clearPanel1", "/4/push1");
   oscP5.plug(this, "clearPanel2", "/4/push2");
   oscP5.plug(this, "clearPanel3", "/4/push3");
+  oscP5.plug(this, "sendPanel1", "/4/send1");
+  oscP5.plug(this, "sendPanel2", "/4/send2");
+  oscP5.plug(this, "sendPanel3", "/4/send3");
 }
 
 void draw() {
@@ -42,7 +49,6 @@ void draw() {
 
 void broadcastPanel(int panelNumber)
 {
-
   OscMessage theMessage = new OscMessage("/foo");
   for (int row = 0; row < panelHeight; row++) {
     OscBundle theBundle = new OscBundle();
@@ -51,7 +57,6 @@ void broadcastPanel(int panelNumber)
     }
     oscP5.send(theBundle, myNetAddressList);
   }
-
 }
 
 void clearPanel1(float theA)
@@ -69,6 +74,21 @@ void clearPanel3(float theA)
   clearPanel(2);
 }
 
+void sendPanel1(float theA)
+{
+  broadcastPanel(0);
+}
+
+void sendPanel2(float theA)
+{
+  broadcastPanel(1);
+}
+
+void sendPanel3(float theA)
+{
+  broadcastPanel(2);
+}
+
 void clearPanel(int panelNumber)
 {
   for (int row = 0; row < panelHeight; row++) {
@@ -79,8 +99,7 @@ void clearPanel(int panelNumber)
   broadcastPanel(panelNumber);
 }
 
-void beat() {
-  MatrixButton[] row = buttonGrid[0][currentRow];
+void updatePanelSlider() {
   OscBundle myBundle = new OscBundle();
   OscMessage fader = new OscMessage("/1/fader1");
   float pos = ((float)currentRow) / 15.0;
@@ -89,8 +108,36 @@ void beat() {
     fader.add(pos);
     myBundle.add(fader);
   }
-  oscP5.send(myBundle, myNetAddressList);
-  //println("Row: "+row[0].to_s()+","+row[1].to_s()+","+row[2].to_s()+","+row[3].to_s()+","+row[4].to_s()+","+row[5].to_s()+","+row[6].to_s()+","+row[7].to_s()+","+row[8].to_s()+","+row[9].to_s());
+  oscP5.send(myBundle, myNetAddressList);    
+}
+
+void playPanelNotes() {
+  int [][] notesToKill = new int [3][panelHeight];
+  for (int panel = 0; panel < numPanels; panel++) {    
+    MatrixButton[] row = buttonGrid[panel][currentRow];
+    for (int i = 0; i < panelHeight; i++) {
+      if (row[i].getState() != 0.0) {
+        notesToKill[panel][i] = 1;
+        myBus.sendNoteOn(panel,row[i].note,128);
+      } else {
+        notesToKill[panel][i] = 0;
+      }
+    }
+  }
+  delay(200);
+  for (int panel = 0; panel < numPanels; panel++) {    
+     MatrixButton[] row = buttonGrid[panel][currentRow];
+     for (int i = 0; i < panelHeight; i++) {
+      if (notesToKill[panel][i] != 0) {
+        myBus.sendNoteOff(panel,row[i].note,128);
+      }
+    }
+  }
+}
+
+void beat() {
+  updatePanelSlider();
+  playPanelNotes();
   if (++currentRow >=panelWidth) {
     currentRow = 0;
   }
@@ -128,6 +175,10 @@ void oscEvent(OscMessage theOscMessage) {
        println("### "+theIPaddress+" is already connected.");
      }
      println("### currently there are "+myNetAddressList.list().size()+" remote locations connected.");
+     /* Since we've got a newly connected client, let's get them up to date with what's already in the matrix */
+     for (int i = 0; i < 3; i++) {
+       broadcastPanel(i);
+     }
  }
 
 

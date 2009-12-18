@@ -1,12 +1,15 @@
 class MatrixButton {
-  int panel, row, column;
+  int panel, row, column, note;
   float state;
-  OscP5 theOSC;
-  MatrixButton(int _panel, int _row, int _column, OscP5 _osc) {
+  OscP5 osc;
+  NetAddressList clients;
+  MatrixButton(int _panel, int _row, int _column, int _note, OscP5 _osc, NetAddressList _clients) {
     panel = _panel;
     row = _row;
     column = _column;
-    theOSC = _osc;
+    note = _note;
+    osc = _osc;
+    clients = _clients;
     state = 0;
   }
   
@@ -18,6 +21,8 @@ class MatrixButton {
   public void setState(float theA) {
     //println("Hey, "+panel+"/"+row+"/"+column+" new state = "+theA);
     state = theA;
+    OscMessage mirrorMessage = new OscMessage(this.touchOSCAddress());
+    osc.send(mirrorMessage, clients);
   }
   
   float getState() {
@@ -34,6 +39,10 @@ class MatrixButton {
   
   int getColumn() {
     return column;
+  }
+  
+  int getNote() {
+    return note;
   }
   
   String touchOSCAddress() {
