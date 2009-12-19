@@ -16,7 +16,8 @@ int panelHeight = 10;
 int currentRow = 0;
 float bpm = 90.0;
 MatrixButton [][][] buttonGrid;
-int[] toneMap = {60,62,64,67,69,72,74,76,79,81};
+int[] toneMap = {
+  60,62,64,67,69,72,74,76,79,81};
 
 String myConnectPattern = "/server/connect";
 String myDisconnectPattern = "/server/disconnect";
@@ -93,7 +94,7 @@ void clearPanel(int panelNumber)
 {
   for (int row = 0; row < panelHeight; row++) {
     for (int column = 0; column < panelWidth; column++) {
-      buttonGrid[panelNumber][column][row].setState(0.0);
+      buttonGrid[panelNumber][column][row].setState(0);
     }
   }  
   broadcastPanel(panelNumber);
@@ -119,15 +120,16 @@ void playPanelNotes() {
       if (row[i].getState() != 0.0) {
         notesToKill[panel][i] = 1;
         myBus.sendNoteOn(panel,row[i].note,128);
-      } else {
+      } 
+      else {
         notesToKill[panel][i] = 0;
       }
     }
   }
   delay(200);
   for (int panel = 0; panel < numPanels; panel++) {    
-     MatrixButton[] row = buttonGrid[panel][currentRow];
-     for (int i = 0; i < panelHeight; i++) {
+    MatrixButton[] row = buttonGrid[panel][currentRow];
+    for (int i = 0; i < panelHeight; i++) {
       if (notesToKill[panel][i] != 0) {
         myBus.sendNoteOff(panel,row[i].note,128);
       }
@@ -156,7 +158,7 @@ void oscEvent(OscMessage theOscMessage) {
    * message to all addresses in the netAddresList. 
    */
   else {
-     if(theOscMessage.isPlugged()==false) {
+    if(theOscMessage.isPlugged()==false) {
       /* print the address pattern and the typetag of the received OscMessage */
       println("### received an osc message.");
       println("### addrpattern\t"+theOscMessage.addrPattern());
@@ -167,28 +169,31 @@ void oscEvent(OscMessage theOscMessage) {
 }
 
 
- private void connect(String theIPaddress) {
-     if (!myNetAddressList.contains(theIPaddress, myBroadcastPort)) {
-       myNetAddressList.add(new NetAddress(theIPaddress, myBroadcastPort));
-       println("### adding "+theIPaddress+" to the list.");
-     } else {
-       println("### "+theIPaddress+" is already connected.");
-     }
-     println("### currently there are "+myNetAddressList.list().size()+" remote locations connected.");
-     /* Since we've got a newly connected client, let's get them up to date with what's already in the matrix */
-     for (int i = 0; i < 3; i++) {
-       broadcastPanel(i);
-     }
- }
+private void connect(String theIPaddress) {
+  if (!myNetAddressList.contains(theIPaddress, myBroadcastPort)) {
+    myNetAddressList.add(new NetAddress(theIPaddress, myBroadcastPort));
+    println("### adding "+theIPaddress+" to the list.");
+  } 
+  else {
+    println("### "+theIPaddress+" is already connected.");
+  }
+  println("### currently there are "+myNetAddressList.list().size()+" remote locations connected.");
+  /* Since we've got a newly connected client, let's get them up to date with what's already in the matrix */
+  for (int i = 0; i < 3; i++) {
+    broadcastPanel(i);
+  }
+}
 
 
 
 private void disconnect(String theIPaddress) {
-if (myNetAddressList.contains(theIPaddress, myBroadcastPort)) {
-		myNetAddressList.remove(theIPaddress, myBroadcastPort);
-       println("### removing "+theIPaddress+" from the list.");
-     } else {
-       println("### "+theIPaddress+" is not connected.");
-     }
-       println("### currently there are "+myNetAddressList.list().size());
- }
+  if (myNetAddressList.contains(theIPaddress, myBroadcastPort)) {
+    myNetAddressList.remove(theIPaddress, myBroadcastPort);
+    println("### removing "+theIPaddress+" from the list.");
+  } 
+  else {
+    println("### "+theIPaddress+" is not connected.");
+  }
+  println("### currently there are "+myNetAddressList.list().size());
+}
+

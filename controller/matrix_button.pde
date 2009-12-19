@@ -13,16 +13,18 @@ class MatrixButton {
     state = 0;
   }
   
-  /*public void setState(int theA) {
-    println("Hey, "+panel+"/"+row+"/"+column+" new state = "+theA);
-    state = theA;
-  }*/
+  public void setState(int theA) {
+    state = (float) theA;
+  }
   
   public void setState(float theA) {
     //println("Hey, "+panel+"/"+row+"/"+column+" new state = "+theA);
     state = theA;
-    OscMessage mirrorMessage = new OscMessage(this.touchOSCAddress());
-    osc.send(mirrorMessage, clients);
+    if (theA <= 1.0) {
+      OscMessage mirrorMessage = new OscMessage(this.touchOSCAddress());
+      mirrorMessage.add(this.getState());
+      osc.send(mirrorMessage, clients);
+    }
   }
   
   float getState() {
